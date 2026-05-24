@@ -1,11 +1,9 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "obs-day-planner",
+	"name": "Day Planner",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Prompts you with a few questions when you open today's daily note, then asks an LLM to generate a timeline schedule into the note.",
+	"author": "scatyf3",
 	"isDesktopOnly": false
 }

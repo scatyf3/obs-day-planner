@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obs-day-planner",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Obsidian plugin that prompts on today's daily note and generates an LLM timeline schedule.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
