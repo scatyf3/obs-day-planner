@@ -1,4 +1,4 @@
-import {requestUrl, RequestUrlResponse} from "obsidian";
+import {requestUrl} from "obsidian";
 import type {DayPlannerSettings} from "./settings";
 
 interface OpenAIResponse {
@@ -39,18 +39,62 @@ export async function chatCompletion(
 	return openaiCompletion(settings, baseUrl, systemPrompt, userPrompt);
 }
 
-async function post(url: string, headers: Record<string, string>, body: unknown): Promise<RequestUrlResponse> {
+interface RawResponse {
+	status: number;
+	text: string;
+}
+
+/** POST JSON and return raw status + text, without parsing (parsing is deferred). */
+async function post(url: string, headers: Record<string, string>, body: unknown): Promise<RawResponse> {
 	try {
-		return await requestUrl({
+		const res = await requestUrl({
 			url,
 			method: "POST",
 			headers,
 			body: JSON.stringify(body),
 			throw: false,
 		});
+		// Read text directly; avoid res.json, whose getter throws on empty/non-JSON bodies.
+		return {status: res.status, text: res.text ?? ""};
 	} catch (e) {
 		throw new Error(`Network error reaching ${url}: ${(e as Error).message}`);
 	}
+}
+
+/** Short, single-line snippet of a body for inclusion in error messages. */
+function snippet(text: string): string {
+	const s = text.replace(/\s+/g, " ").trim();
+	return s.length > 200 ? `${s.slice(0, 200)}…` : s;
+}
+
+/**
+ * Parse a successful response body as JSON, or throw a clear error that includes
+ * the status and a snippet of what the server actually returned. Also surfaces
+ * non-2xx responses (with the server's error message when present).
+ */
+function parseOrThrow<T extends {error?: {message?: string}}>(res: RawResponse): T {
+	let json: T | undefined;
+	if (res.text.length > 0) {
+		try {
+			json = JSON.parse(res.text) as T;
+		} catch {
+			json = undefined;
+		}
+	}
+
+	if (res.status < 200 || res.status >= 300) {
+		const detail = json?.error?.message ?? (snippet(res.text) || "no response body");
+		throw new Error(`LLM request failed (HTTP ${res.status}). ${detail}`.trim());
+	}
+
+	if (json === undefined) {
+		const detail = res.text.length === 0
+			? "empty response body"
+			: `non-JSON response: ${snippet(res.text)}`;
+		throw new Error(`LLM returned an unexpected response (HTTP ${res.status}): ${detail}`);
+	}
+
+	return json;
 }
 
 async function openaiCompletion(
@@ -59,9 +103,8 @@ async function openaiCompletion(
 	systemPrompt: string,
 	userPrompt: string,
 ): Promise<string> {
-	const url = `${baseUrl}/chat/completions`;
 	const res = await post(
-		url,
+		`${baseUrl}/chat/completions`,
 		{
 			"Authorization": `Bearer ${settings.apiKey}`,
 			"Content-Type": "application/json",
@@ -76,12 +119,8 @@ async function openaiCompletion(
 		},
 	);
 
-	const json = res.json as OpenAIResponse | undefined;
-	if (res.status < 200 || res.status >= 300) {
-		throw new Error(`LLM request failed (HTTP ${res.status}). ${json?.error?.message ?? res.text ?? ""}`.trim());
-	}
-
-	const content = json?.choices?.[0]?.message?.content;
+	const json = parseOrThrow<OpenAIResponse>(res);
+	const content = json.choices?.[0]?.message?.content;
 	if (typeof content !== "string" || content.length === 0) {
 		throw new Error("LLM returned an empty response.");
 	}
@@ -94,9 +133,8 @@ async function anthropicCompletion(
 	systemPrompt: string,
 	userPrompt: string,
 ): Promise<string> {
-	const url = `${baseUrl}/messages`;
 	const res = await post(
-		url,
+		`${baseUrl}/messages`,
 		{
 			"x-api-key": settings.apiKey,
 			"anthropic-version": "2023-06-01",
@@ -110,12 +148,8 @@ async function anthropicCompletion(
 		},
 	);
 
-	const json = res.json as AnthropicResponse | undefined;
-	if (res.status < 200 || res.status >= 300) {
-		throw new Error(`LLM request failed (HTTP ${res.status}). ${json?.error?.message ?? res.text ?? ""}`.trim());
-	}
-
-	const content = json?.content?.find((b) => b.type === "text")?.text;
+	const json = parseOrThrow<AnthropicResponse>(res);
+	const content = json.content?.find((b) => b.type === "text")?.text;
 	if (typeof content !== "string" || content.length === 0) {
 		throw new Error("LLM returned an empty response.");
 	}
