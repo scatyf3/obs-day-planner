@@ -9,7 +9,10 @@
 - **自动弹窗**:监听 `file-open`,当打开的是*今天*日期命名的 Daily 笔记、且当天还没弹过、`## Timeline` 区块为空时,自动弹出提问窗口。
 - **手动触发**:命令面板里的 **Plan today**,对当前笔记随时生成。
 - **可编辑预览**:生成结果先在弹窗里给你看 / 改,确认后才写入笔记,不会直接覆盖。
-- **OpenAI 兼容**:设置里填 base URL + API key + 模型名,兼容 OpenAI、DeepSeek、本地 Ollama、各种中转。
+- **两种 API 风格**:设置里选 **Provider**:
+  - **OpenAI-compatible** —— 兼容 OpenAI、DeepSeek、本地 Ollama、各种中转(`/chat/completions`)。
+  - **Anthropic (Claude)** —— Claude 原生 `/messages` API(如 `claude-opus-4-7`)。
+  - Base URL 留空则用所选 Provider 的默认地址。
 
 ## 使用
 

@@ -1,15 +1,20 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import type DayPlannerPlugin from "./main";
+import {DEFAULT_BASE_URLS} from "./llm";
 
 export interface DayPlannerSettings {
 	/** Master switch. Off by default — networked features require opt-in. */
 	enabled: boolean;
-	/** OpenAI-compatible base URL, e.g. "https://api.openai.com/v1". */
+	/** API style: OpenAI-compatible chat completions, or Anthropic messages. */
+	provider: "openai" | "anthropic";
+	/** Base URL. Empty falls back to the provider default. */
 	apiBaseUrl: string;
 	/** API key. Stored in plain text in data.json. */
 	apiKey: string;
-	/** Model name, e.g. "gpt-4o-mini". */
+	/** Model name, e.g. "gpt-4o-mini" or "claude-opus-4-7". */
 	model: string;
+	/** Max tokens to generate. Required by Anthropic; also sent to OpenAI. */
+	maxTokens: number;
 	/** Regex matched against the note basename to detect a daily note. */
 	dailyNoteRegex: string;
 	/** Optional path prefix that a daily note must live under (empty = no limit). */
@@ -35,9 +40,11 @@ const DEFAULT_QUESTIONS = [
 
 export const DEFAULT_SETTINGS: DayPlannerSettings = {
 	enabled: false,
-	apiBaseUrl: "https://api.openai.com/v1",
+	provider: "openai",
+	apiBaseUrl: "",
 	apiKey: "",
 	model: "gpt-4o-mini",
+	maxTokens: 2048,
 	dailyNoteRegex: "^\\d{4}-\\d{2}-\\d{2}$",
 	dailyNoteFolder: "",
 	timelineHeading: "## Timeline",
@@ -75,11 +82,27 @@ export class DayPlannerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName("LLM API").setHeading();
 
+		const provider = this.plugin.settings.provider;
+		const isAnthropic = provider === "anthropic";
+
+		new Setting(containerEl)
+			.setName("Provider")
+			.setDesc("OpenAI-compatible (OpenAI, DeepSeek, Ollama, proxies) or Anthropic Claude.")
+			.addDropdown((d) => d
+				.addOption("openai", "OpenAI-compatible")
+				.addOption("anthropic", "Anthropic (Claude)")
+				.setValue(provider)
+				.onChange(async (v) => {
+					this.plugin.settings.provider = v as "openai" | "anthropic";
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
 		new Setting(containerEl)
 			.setName("Base URL")
-			.setDesc("OpenAI-compatible endpoint. Works with OpenAI, DeepSeek, local Ollama, proxies, etc.")
+			.setDesc(`Leave empty to use the provider default (${DEFAULT_BASE_URLS[provider]}).`)
 			.addText((t) => t
-				.setPlaceholder("https://api.openai.com/v1")
+				.setPlaceholder(DEFAULT_BASE_URLS[provider])
 				.setValue(this.plugin.settings.apiBaseUrl)
 				.onChange(async (v) => {
 					this.plugin.settings.apiBaseUrl = v.trim();
@@ -91,7 +114,7 @@ export class DayPlannerSettingTab extends PluginSettingTab {
 			.setDesc("Stored in plain text in this vault's data.json. Sent only to the base URL above.")
 			.addText((t) => {
 				t.inputEl.type = "password";
-				t.setPlaceholder("sk-...")
+				t.setPlaceholder(isAnthropic ? "sk-ant-..." : "sk-...")
 					.setValue(this.plugin.settings.apiKey)
 					.onChange(async (v) => {
 						this.plugin.settings.apiKey = v.trim();
@@ -102,10 +125,22 @@ export class DayPlannerSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Model")
 			.addText((t) => t
-				.setPlaceholder("gpt-4o-mini")
+				.setPlaceholder(isAnthropic ? "claude-opus-4-7" : "gpt-4o-mini")
 				.setValue(this.plugin.settings.model)
 				.onChange(async (v) => {
 					this.plugin.settings.model = v.trim();
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Max tokens")
+			.setDesc("Maximum tokens to generate per request.")
+			.addText((t) => t
+				.setPlaceholder("2048")
+				.setValue(String(this.plugin.settings.maxTokens))
+				.onChange(async (v) => {
+					const n = Number(v);
+					this.plugin.settings.maxTokens = Number.isFinite(n) && n > 0 ? Math.floor(n) : 2048;
 					await this.plugin.saveSettings();
 				}));
 
