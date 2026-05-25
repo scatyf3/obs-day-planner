@@ -21,9 +21,7 @@ export interface DayPlannerSettings {
 	dailyNoteFolder: string;
 	/** Heading marking the timeline section, e.g. "## Timeline". */
 	timelineHeading: string;
-	/** Where planning rules come from. */
-	rulesSource: "builtin" | "note";
-	/** Vault path of the note holding planning rules (when rulesSource === "note"). */
+	/** Vault path of the note holding the planning rules (the LLM system prompt). */
 	rulesNotePath: string;
 	/** Questions asked in the planner modal, one per entry. */
 	questions: string[];
@@ -33,9 +31,13 @@ export interface DayPlannerSettings {
 	lastPromptDate: string;
 }
 
-// Default questions, taken from plan.md Step 1.
+// Generic default questions; customize these in settings to fit your day.
 const DEFAULT_QUESTIONS = [
-	"What are the 1-3 most important things today?",
+	"现在几点?从头排一整天,还是从现在补排剩下的?",
+	"今天最重要的 1–3 件事是什么?其中哪件必须今天推进?",
+	"今天有哪些固定的预约或会议?大概几点?",
+	"天气会影响今天的安排吗?(比如户外锻炼)",
+	"今天外出吗?有没有要顺路办的事?晚饭自己做还是买?",
 ];
 
 export const DEFAULT_SETTINGS: DayPlannerSettings = {
@@ -48,7 +50,6 @@ export const DEFAULT_SETTINGS: DayPlannerSettings = {
 	dailyNoteRegex: "^\\d{4}-\\d{2}-\\d{2}$",
 	dailyNoteFolder: "",
 	timelineHeading: "## Timeline",
-	rulesSource: "builtin",
 	rulesNotePath: "",
 	questions: DEFAULT_QUESTIONS,
 	includeNoteContent: true,
@@ -201,30 +202,15 @@ export class DayPlannerSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Rules source")
-			.setDesc("Where the planning rules (the LLM system prompt) come from.")
-			.addDropdown((d) => d
-				.addOption("builtin", "Built-in")
-				.addOption("note", "A note in this vault")
-				.setValue(this.plugin.settings.rulesSource)
+			.setName("Rules note path")
+			.setDesc("Vault path of the note holding your planning rules (the LLM system prompt), e.g. plan.md.")
+			.addText((t) => t
+				.setPlaceholder("plan.md")
+				.setValue(this.plugin.settings.rulesNotePath)
 				.onChange(async (v) => {
-					this.plugin.settings.rulesSource = v as "builtin" | "note";
+					this.plugin.settings.rulesNotePath = v.trim();
 					await this.plugin.saveSettings();
-					this.display();
 				}));
-
-		if (this.plugin.settings.rulesSource === "note") {
-			new Setting(containerEl)
-				.setName("Rules note path")
-				.setDesc("Vault path of the note holding your planning rules, e.g. plan.md.")
-				.addText((t) => t
-					.setPlaceholder("plan.md")
-					.setValue(this.plugin.settings.rulesNotePath)
-					.onChange(async (v) => {
-						this.plugin.settings.rulesNotePath = v.trim();
-						await this.plugin.saveSettings();
-					}));
-		}
 
 		new Setting(containerEl)
 			.setName("Include note content")

@@ -3,22 +3,18 @@ import type {DayPlannerSettings} from "./settings";
 import type {PlannerInput} from "./types";
 import {chatCompletion} from "./llm";
 
-// Condensed from plan.md (核心原则 / 作息骨架 / 三个 work section).
-// Used as the system prompt when settings.rulesSource === "builtin".
-const BUILTIN_RULES = `You are a daily planning assistant. Plan the user's day based on their rules.`;
-
 const OUTPUT_REMINDER = `\n\n请只输出可直接贴进 Timeline 区块的内容,每行 \`- HH:MM 事项\`,不要包裹代码块。`;
 
-/** Resolve the system prompt: built-in rules, or the content of a vault note. */
+/** Resolve the system prompt from the configured vault note. */
 async function getRules(app: App, settings: DayPlannerSettings): Promise<string> {
-	if (settings.rulesSource === "note" && settings.rulesNotePath) {
-		const file = app.vault.getAbstractFileByPath(settings.rulesNotePath);
-		if (file instanceof TFile) {
-			return await app.vault.read(file);
-		}
-		throw new Error(`Rules note not found: ${settings.rulesNotePath}`);
+	if (!settings.rulesNotePath) {
+		throw new Error("No rules note configured. Set the rules note path in the plugin settings.");
 	}
-	return BUILTIN_RULES;
+	const file = app.vault.getAbstractFileByPath(settings.rulesNotePath);
+	if (file instanceof TFile) {
+		return await app.vault.read(file);
+	}
+	throw new Error(`Rules note not found: ${settings.rulesNotePath}`);
 }
 
 function buildUserPrompt(input: PlannerInput): string {

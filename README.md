@@ -22,7 +22,7 @@
    - 打开 **Enable day planner** 总开关(默认关闭)。
    - 填 **Base URL / API key / Model**。
    - 按需调整 **Daily note detection**(文件名正则、文件夹前缀)、**Timeline heading**、**Questions**。
-   - **Rules source** 可选内置规则,或指向库内某个笔记(例如 `plan.md`),改那个笔记即改 prompt。
+   - **Rules note path** 指向库内某个笔记(例如 `plan.md`)作为规划规则,改那个笔记即改 prompt。规则笔记不随插件仓库分发,留在你自己的库里。
 4. 打开今天的 Daily 笔记,或在命令面板运行 **Plan today**。
 
 ## 隐私与联网说明
