@@ -21,6 +21,8 @@ export interface DayPlannerSettings {
 	dailyNoteFolder: string;
 	/** Heading marking the timeline section, e.g. "## Timeline". */
 	timelineHeading: string;
+	/** Heading marking the TODO section, e.g. "## TODO". */
+	todoHeading: string;
 	/** Vault path of the note holding the planning rules (the LLM system prompt). */
 	rulesNotePath: string;
 	/** Questions asked in the planner modal, one per entry. */
@@ -29,6 +31,10 @@ export interface DayPlannerSettings {
 	includeNoteContent: boolean;
 	/** Internal: last date (YYYY-MM-DD) we auto-prompted, to avoid repeats. */
 	lastPromptDate: string;
+	/** Internal: date the answer buffer below belongs to; cleared when the day changes. */
+	answerBufferDate: string;
+	/** Internal: per-day cache of answers, keyed by question text, for re-planning the same day. */
+	answerBuffer: Record<string, string>;
 }
 
 // Generic default questions; customize these in settings to fit your day.
@@ -50,10 +56,13 @@ export const DEFAULT_SETTINGS: DayPlannerSettings = {
 	dailyNoteRegex: "^\\d{4}-\\d{2}-\\d{2}$",
 	dailyNoteFolder: "",
 	timelineHeading: "## Timeline",
+	todoHeading: "## TODO",
 	rulesNotePath: "",
 	questions: DEFAULT_QUESTIONS,
 	includeNoteContent: true,
 	lastPromptDate: "",
+	answerBufferDate: "",
+	answerBuffer: {},
 };
 
 export class DayPlannerSettingTab extends PluginSettingTab {
@@ -198,6 +207,16 @@ export class DayPlannerSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.timelineHeading)
 				.onChange(async (v) => {
 					this.plugin.settings.timelineHeading = v.trim() || "## Timeline";
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("TODO heading")
+			.setDesc("Today's TODOs (gathered from your answers and the note's unfinished items) are written under this heading.")
+			.addText((t) => t
+				.setValue(this.plugin.settings.todoHeading)
+				.onChange(async (v) => {
+					this.plugin.settings.todoHeading = v.trim() || "## TODO";
 					await this.plugin.saveSettings();
 				}));
 

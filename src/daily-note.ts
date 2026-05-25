@@ -76,10 +76,10 @@ export function readTimeline(content: string, heading: string): string | null {
 }
 
 /**
- * Replace the body under the timeline heading with `body`. If the section is
- * missing, append it (heading + body) to the end of the note.
+ * Replace the body under `heading` with `body`. If the section is missing,
+ * append it (heading + body) to the end of the note.
  */
-export function upsertTimeline(content: string, heading: string, body: string): string {
+export function upsertSection(content: string, heading: string, body: string): string {
 	const lines = content.split("\n");
 	const start = findHeadingLine(lines, heading);
 

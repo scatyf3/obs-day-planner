@@ -17,3 +17,11 @@ export interface PlannerInput {
 	/** Current note content, included when settings.includeNoteContent is on. */
 	noteContent?: string;
 }
+
+/** What the LLM produces: a timeline and a TODO list, each as note-ready markdown. */
+export interface PlannerOutput {
+	/** Timeline lines, e.g. "- HH:MM 事项". */
+	timeline: string;
+	/** TODO checklist lines, e.g. "- [ ] 事项". Empty when there's nothing to carry. */
+	todos: string;
+}

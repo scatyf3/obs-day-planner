@@ -2,3 +2,15 @@
 .day-planner-full-width {
 	width: 100%;
 }
+
+/* Stacked question/answer block: label on top, input below. */
+.day-planner-qa {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-1);
+	margin-bottom: var(--size-4-3);
+}
+
+.day-planner-q {
+	font-weight: var(--font-semibold);
+}

@@ -1,6 +1,6 @@
 # Day Planner
 
-每天第一次打开当天的 Daily 笔记时弹窗,问你几个问题(今天要做什么、main project 是否紧迫……),然后调用一个 LLM API,按你的规划原则生成一版 `- HH:MM 事项` 格式的日程,写进笔记的 `## Timeline` 区块。
+每天第一次打开当天的 Daily 笔记时弹窗,问你几个问题(今天要做什么、有哪些固定安排……),然后调用一个 LLM API,按你的规划原则生成一版 `- HH:MM 事项` 格式的日程写进 `## Timeline`,并把当天的待办(从你的回答和笔记里已有的未完成项汇总)写进 `## TODO`。
 
 > 原始想法见下方「设计初衷」。规划逻辑(核心原则 / 作息骨架 / 三个 work section)来自 [plan.md](plan.md),作为 LLM 的 system prompt。
 
@@ -8,6 +8,8 @@
 
 - **自动弹窗**:监听 `file-open`,当打开的是*今天*日期命名的 Daily 笔记、且当天还没弹过、`## Timeline` 区块为空时,自动弹出提问窗口。
 - **手动触发**:命令面板里的 **Plan today**,对当前笔记随时生成。
+- **Timeline + TODO**:一次生成两块 —— `## Timeline` 日程,和 `## TODO` 待办(只汇总你明确提到的事项与笔记里未完成的 TODO,不自行新增)。两个 heading 都可在设置里改。
+- **每日答案缓存**:提问的回答按天缓存,同一天再次 replan 时自动回填,跨天自动清空,不用每次重写。
 - **可编辑预览**:生成结果先在弹窗里给你看 / 改,确认后才写入笔记,不会直接覆盖。
 - **两种 API 风格**:设置里选 **Provider**:
   - **OpenAI-compatible** —— 兼容 OpenAI、DeepSeek、本地 Ollama、各种中转(`/chat/completions`)。
@@ -21,7 +23,7 @@
 3. 打开插件设置:
    - 打开 **Enable day planner** 总开关(默认关闭)。
    - 填 **Base URL / API key / Model**。
-   - 按需调整 **Daily note detection**(文件名正则、文件夹前缀)、**Timeline heading**、**Questions**。
+   - 按需调整 **Daily note detection**(文件名正则、文件夹前缀)、**Timeline heading**、**TODO heading**、**Questions**。
    - **Rules note path** 指向库内某个笔记(例如 `plan.md`)作为规划规则,改那个笔记即改 prompt。规则笔记不随插件仓库分发,留在你自己的库里。
 4. 打开今天的 Daily 笔记,或在命令面板运行 **Plan today**。
 
