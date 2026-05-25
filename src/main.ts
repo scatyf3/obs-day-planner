@@ -21,6 +21,16 @@ export default class DayPlannerPlugin extends Plugin {
 			},
 		});
 
+		// One-click trigger for the active note, regardless of daily-note rules.
+		this.addRibbonIcon("calendar-clock", "Plan today", () => {
+			const file = this.app.workspace.getActiveViewOfType(MarkdownView)?.file;
+			if (!file) {
+				new Notice("Day planner: open a note first.");
+				return;
+			}
+			this.openPlanner(file);
+		});
+
 		this.registerEvent(
 			this.app.workspace.on("file-open", (file) => this.maybeAutoPrompt(file)),
 		);
