@@ -1,6 +1,6 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import type DayPlannerPlugin from "./main";
-import {DEFAULT_BASE_URLS} from "./llm";
+import {chatCompletion, DEFAULT_BASE_URLS} from "./llm";
 
 export interface DayPlannerSettings {
 	/** Master switch. Off by default — networked features require opt-in. */
@@ -143,6 +143,27 @@ export class DayPlannerSettingTab extends PluginSettingTab {
 					this.plugin.settings.maxTokens = Number.isFinite(n) && n > 0 ? Math.floor(n) : 2048;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName("Test connection")
+			.setDesc("Send a tiny request to verify your URL, key, and model.")
+			.addButton((b) =>
+				b.setButtonText("Test")
+					.onClick(async () => {
+						b.setButtonText("Testing…").setDisabled(true);
+						try {
+							const reply = await chatCompletion(
+								this.plugin.settings,
+								"You are a connection test. Reply with exactly: ok",
+								"ping",
+							);
+							new Notice(`Day planner: connection ok. Model replied: ${reply.slice(0, 60)}`);
+						} catch (e) {
+							new Notice(`Day planner: test failed — ${(e as Error).message}`);
+						} finally {
+							b.setButtonText("Test").setDisabled(false);
+						}
+					}));
 
 		new Setting(containerEl).setName("Daily note detection").setHeading();
 
